@@ -1,0 +1,132 @@
+{
+  "ett": {
+    "display_name": "ETT (Electricity Transformer Temperature)",
+    "description": "来自国家电网的变压器温度数据，包含不同采样频率 (小时/15 分钟) 的四个子集。",
+    "frequency": ["hourly", "quarter-hourly"],
+    "domain": "energy",
+    "resources": [
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv",
+        "save_as": "ETTh1.csv"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh2.csv",
+        "save_as": "ETTh2.csv"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTm1.csv",
+        "save_as": "ETTm1.csv"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTm2.csv",
+        "save_as": "ETTm2.csv"
+      }
+    ],
+    "license": "MIT",
+    "source": "https://github.com/zhouhaoyi/ETDataset"
+  },
+  "electricity": {
+    "display_name": "Electricity Load Diagrams 2011-2014",
+    "description": "370 个客户的电力消耗小时级数据。",
+    "frequency": ["hourly"],
+    "domain": "energy",
+    "resources": [
+      {
+        "url": "https://archive.ics.uci.edu/static/public/321/electricityloaddiagrams20112014.zip",
+        "save_as": "electricityloaddiagrams20112014.zip",
+        "compression": "zip",
+        "keep_archive": true
+      }
+    ],
+    "license": "UCI Usage Policy",
+    "source": "https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014"
+  },
+  "traffic": {
+    "display_name": "PEMS-SF Traffic",
+    "description": "旧金山湾区高速公路传感器流量数据，采样频率为每小时。",
+    "frequency": ["hourly"],
+    "domain": "transportation",
+    "resources": [
+      {
+        "url": "https://archive.ics.uci.edu/static/public/204/pems-sf.zip",
+        "save_as": "pems-sf.zip",
+        "compression": "zip",
+        "keep_archive": true
+      }
+    ],
+    "license": "UCI Usage Policy",
+    "source": "https://archive.ics.uci.edu/ml/datasets/PEMS-SF"
+  },
+  "exchange_rate": {
+    "display_name": "Exchange Rate (8 外汇汇率)",
+    "description": "2017 年前后 8 种货币与美元的每日汇率时间序列。",
+    "frequency": ["daily"],
+    "domain": "finance",
+    "resources": [
+      {
+        "url": "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/exchange_rate/exchange_rate.txt",
+        "save_as": "exchange_rate.txt"
+      }
+    ],
+    "license": "MIT",
+    "source": "https://github.com/laiguokun/multivariate-time-series-data"
+  },
+  "weather": {
+    "display_name": "Weather Time Series",
+    "description": "美国多个气象站 2010-2014 年的 10 分钟天气观测数据。",
+    "frequency": ["10min"],
+    "domain": "meteorology",
+    "resources": [
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/Informer2020/main/data/weather/weather.csv",
+        "save_as": "weather.csv"
+      }
+    ],
+    "license": "CC BY 4.0",
+    "source": "https://github.com/zhouhaoyi/Informer2020"
+  },
+  "ili": {
+    "display_name": "Influenza-like Illness (ILI)",
+    "description": "美国 CDC 公开的每周流感样病例百分比数据。",
+    "frequency": ["weekly"],
+    "domain": "health",
+    "resources": [
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/Informer2020/main/data/ILI/ILI.csv",
+        "save_as": "ILI.csv"
+      }
+    ],
+    "license": "Public Domain",
+    "source": "https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html"
+  },
+  "m4": {
+    "display_name": "M4 Competition Dataset",
+    "description": "M4 竞赛提供的 100000 条多频率时间序列集。",
+    "frequency": ["subset-specific"],
+    "domain": "mixed",
+    "resources": [
+      {
+        "url": "https://www.mcompetitions.unic.ac.cy/wp-content/uploads/2018/03/M4DataSet.zip",
+        "save_as": "M4DataSet.zip",
+        "compression": "zip",
+        "keep_archive": true
+      }
+    ],
+    "license": "Research Use",
+    "source": "https://www.mcompetitions.unic.ac.cy/the-dataset/"
+  },
+  "solar": {
+    "display_name": "Solar Power Data",
+    "description": "来自 NREL 的 2006-2012 年太阳能发电数据。",
+    "frequency": ["10min"],
+    "domain": "energy",
+    "resources": [
+      {
+        "url": "https://raw.githubusercontent.com/zhouhaoyi/Informer2020/main/data/solar/solar_energy.csv",
+        "save_as": "solar_energy.csv"
+      }
+    ],
+    "license": "Open Government License",
+    "source": "https://www.nrel.gov/grid/solar-power-data.html"
+  }
+}

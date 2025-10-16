@@ -1,0 +1,108 @@
+# === 操作系统与编辑器 ===
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# VS Code / 编辑器
+.vscode/
+.history/
+*.code-workspace
+
+# 常见 IDE
+.idea/
+*.iml
+
+# 交换文件
+*~
+*.swp
+*.swo
+
+# === Python 通用 ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# 构建产物
+build/
+dist/
+sdist/
+site/
+.eggs/
+*.egg-info/
+*.egg
+.wheels/
+
+# 测试与覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# 静态检查/类型检查缓存
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+.cache/
+
+# 其他工具
+.tox/
+.nox/
+pip-wheel-metadata/
+
+# Jupyter
+.ipynb_checkpoints/
+profile_default/
+
+# 环境与本地配置
+.env
+.env.*
+*.env
+# 可按需取消注释：
+# .python-version
+
+# 日志
+logs/
+*.log
+
+# === 数据与模型产物（本项目） ===
+# 忽略大型原始与处理后数据
+/data/raw/
+/data/processed/
+
+# 保留元数据与示例数据（覆盖前面的忽略规则）
+!data/README.md
+!data/metadata.json
+!data/sample/**
+
+# 常见大型二进制/压缩文件（避免误提交）
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.npz
+*.npy
+*.h5
+
+# 训练/推理产物（如适用）
+checkpoints/
+outputs/
+runs/
+*.pth
+*.pt
+*.ckpt
+
+# 临时文件夹占位（允许单独添加 .gitkeep）
+!.gitkeep
