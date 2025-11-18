@@ -1,0 +1,55 @@
+这个脚本 make_tr_labels.py 的作用是：  
+对已经标准化并分好集（train/val/test）的时间序列数据，计算“趋势-残差”标签（Trend/Residual, T/R），并保存为新的 npz 文件，方便后续模型训练或分析。它支持命令行参数，适配不同数据集和配置。
+
+详细结构与流程如下：
+
+---
+
+### 1. 命令行参数解析
+用 argparse 支持如下参数：
+- --npz：输入 npz 文件路径（必填）
+- --trend：趋势类型，"ewma"（指数加权移动平均）或 "ma"（简单滑动平均），默认 "ewma"
+- --window：滑动窗口大小，默认 24
+- --alpha：ewma 的平滑系数，默认 None（自动按 window 换算）
+- --out-suffix：输出文件后缀，默认 "_with_TR.npz"
+
+---
+
+### 2. 主要函数
+- causal_moving_average：实现因果（只用过去数据）滑动平均
+- causal_ewma：实现因果 EWMA
+- make_TR_full_series：在整段数据上计算趋势（T）和残差（R）
+
+---
+
+### 3. 主流程 main()
+1. 解析命令行参数，获取 npz 路径、趋势类型、窗口等。
+2. 加载 npz 文件，支持两种格式：
+   - 1）train/val/test 三段分开保存
+   - 2）X_all + train_end/val_end（整段+切分点）
+3. 将三段拼接成一段 X_full，记录切分点。
+4. 在 X_full 上做因果趋势（EWMA 或 MA），得到 T_full 和 R_full。
+5. 按切分点切回 train/val/test 三段，分别保存 T/R。
+6. 组织输出字典，保留原有元信息（如时间戳、列名等）。
+7. 保存新 npz 文件（包含原始数据和 T/R 标签）。
+8. 保存趋势配置的 meta 信息为 tr_meta.json，便于追溯。
+
+---
+
+### 4. 用法示例
+```bash
+python -m src.data.make_tr_labels \
+  --npz data/processed/ett/ETTh1/data.npz \
+  --trend ewma --window 24
+```
+这样会生成 data/processed/ett/ETTh1/data_with_TR.npz 和 tr_meta.json。
+
+---
+
+### 5. 适用场景
+- 需要为时间序列数据生成趋势/残差标签，做分解建模、异常检测等任务。
+- 支持不同数据集、不同趋势参数，灵活适配。
+
+---
+
+如需扩展支持更多参数或自定义趋势算法，只需在 argparse 和主流程中添加即可。

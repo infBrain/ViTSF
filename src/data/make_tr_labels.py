@@ -5,7 +5,7 @@
 - 支持 {train,val,test} 或 {X_all, train_end, val_end} 两种 npz 格式
 - 先拼接整段 → 因果趋势(EWMA/MA) → 切回三段
 示例：
-python -m src.make_tr_labels \
+python -m src.data.make_tr_labels \
   --npz data/processed/ett/ETTh1/data.npz \
   --trend ewma --window 24
 """
