@@ -1,10 +1,22 @@
+from __future__ import annotations
+
+from typing import Any, Dict
+
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+
 from src.model.vitsf import ViTSF
 
 class ViTSFLightningModule(pl.LightningModule):
-    def __init__(self, model_kwargs, lr=1e-4, weight_decay=1e-5, loss_weights={'trend': 1.0, 'residual': 1.0}):
+    def __init__(
+        self,
+        model_kwargs,
+        lr=1e-4,
+        weight_decay=1e-5,
+        loss_weights={'trend': 1.0, 'residual': 1.0},
+        scheduler_config: Dict[str, Any] | None = None,
+    ):
         """
         PyTorch Lightning Module for the ViTSF model.
 
@@ -26,6 +38,7 @@ class ViTSFLightningModule(pl.LightningModule):
         self.residual_loss_fn = nn.HuberLoss() # Huber loss is robust to outliers
         
         self.loss_weights = loss_weights
+        self.scheduler_config = scheduler_config
 
     def forward(self, x_img, x_ts):
         return self.model(x_img, x_ts)
@@ -66,26 +79,42 @@ class ViTSFLightningModule(pl.LightningModule):
         return self._calculate_loss(batch, stage='test')
 
     def configure_optimizers(self):
-        """
-        Configure the optimizer and learning rate scheduler.
-        """
+        """Configure optimizer and the requested LR scheduler."""
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        
-        # Optional: Add a learning rate scheduler
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, 
-            'min', 
-            patience=5, 
-            factor=0.5, 
-        )
-        
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "monitor": "val_total_loss", # Monitor validation loss
-            },
-        }
+
+        if not self.scheduler_config or self.scheduler_config.get("type", "none") == "none":
+            return optimizer
+
+        cfg = self.scheduler_config
+        sched_type = cfg.get("type", "none").lower()
+
+        if sched_type == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=cfg.get("t_max", 10),
+                eta_min=cfg.get("eta_min", 0.0),
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": scheduler,
+            }
+        if sched_type == "plateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                mode=cfg.get("mode", "min"),
+                patience=cfg.get("patience", 5),
+                factor=cfg.get("factor", 0.5),
+                min_lr=cfg.get("min_lr", 0.0),
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "monitor": cfg.get("monitor", "val_total_loss"),
+                },
+            }
+
+        raise ValueError(f"Unsupported scheduler type: {sched_type}")
 
 if __name__ == '__main__':
     # To run this test, execute from the root directory:
