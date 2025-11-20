@@ -73,6 +73,7 @@ def main() -> None:
 
     time_axis = range(series.shape[0])
     mean_series = series.mean(dim=1).cpu().numpy()
+    std_series = series.std(dim=1).cpu().numpy()
     first_node = series[:, 0].cpu().numpy()
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 10))
@@ -80,8 +81,28 @@ def main() -> None:
     axes[0].set_title(f"ViT Input Image — split={args.split} index={args.index}")
     axes[0].axis("off")
 
-    axes[1].plot(time_axis, mean_series, label="Mean across nodes")
-    axes[1].plot(time_axis, first_node, label="Node 0")
+    axes[1].plot(
+        time_axis,
+        mean_series,
+        label="Mean across nodes",
+        color="tab:blue",
+        alpha=0.9,
+    )
+    axes[1].plot(
+        time_axis,
+        std_series,
+        label="Std across nodes",
+        linestyle="--",
+        color="tab:green",
+        alpha=0.8,
+    )
+    axes[1].plot(
+        time_axis,
+        first_node,
+        label="Node 0 (Original time-series)",
+        color="tab:orange",
+        alpha=0.85,
+    )
     axes[1].set_title("Original time-series window")
     axes[1].set_xlabel("Timestep")
     axes[1].set_ylabel("Normalized value")
