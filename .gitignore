@@ -106,3 +106,5 @@ runs/
 
 # 临时文件夹占位（允许单独添加 .gitkeep）
 !.gitkeep
+
+cache/

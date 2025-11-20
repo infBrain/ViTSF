@@ -4,8 +4,24 @@
 ViTSF 模型的视觉路径 (Visual Path)。
 使用预训练的 Vision Transformer (ViT) 提取图像特征，并预测时间序列的趋势。
 """
+import os
+from pathlib import Path
 import torch
 import torch.nn as nn
+
+# --- 设置模型缓存目录 ---
+# 将 Hugging Face 和 timm 的缓存目录设置在项目根目录下的 hugging_face_models 中
+# 这样可以确保模型下载到项目内部，方便管理和移植
+try:
+    project_root = Path(__file__).resolve().parents[2]
+    hf_cache_dir = project_root / 'hugging_face_models'
+    hf_cache_dir.mkdir(exist_ok=True)
+    os.environ['HF_HOME'] = str(hf_cache_dir)
+    os.environ['TRANSFORMERS_CACHE'] = str(hf_cache_dir)
+    print(f"✅ 模型缓存目录已设置为: {hf_cache_dir}")
+except Exception as e:
+    print(f"⚠️ 设置模型缓存目录失败: {e}")
+
 import timm
 
 class ViTPath(nn.Module):
@@ -62,13 +78,10 @@ class ViTPath(nn.Module):
         # 从 ViT 获取特征 (CLS token)
         # timm < 0.9.0, features = self.vit.forward_features(x)
         # timm >= 0.9.0, features = self.vit.forward_features(x)[:, 0]
-        features = self.vit.forward_features(x)
-        
-        # 不同的 timm 版本，forward_features 的输出可能不同
-        if features.ndim == 3: # (N, num_patches + 1, d_model)
-            cls_token = features[:, 0] # 取 [CLS] token
-        else: # (N, d_model)
-            cls_token = features
+        # 从 ViT 获取特征 (CLS token)。
+        # forward_features(x) 返回所有 token 的特征，shape: (N, num_patches + 1, d_model)
+        # 我们取第一个 token [:, 0]，即 [CLS] token。
+        cls_token = self.vit.forward_features(x)[:, 0]
 
         # cls_token shape: (N, d_model)
         

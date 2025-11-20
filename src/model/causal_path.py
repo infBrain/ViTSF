@@ -76,9 +76,9 @@ class CausalPath(nn.Module):
         # 为了让每个变量有自己的 TCN，我们将 N 和 D 合并
         x_tcn_in = x_tcn_in.reshape(N * D, 1, L) # -> (N*D, 1, L)
         
-        # 经过 TCN
-        tcn_out = self.tcn(x_tcn_in) # -> (N*D, tcn_channels[-1], 1)
-        tcn_out = tcn_out.squeeze(-1) # -> (N*D, tcn_channels[-1])
+        # 经过 TCN 并在时间维度上进行池化，得到每个节点的紧凑表示
+        tcn_out = self.tcn(x_tcn_in) # -> (N*D, tcn_channels[-1], L)
+        tcn_out = tcn_out.mean(dim=-1) # -> (N*D, tcn_channels[-1])
         
         # 恢复形状
         tcn_out = tcn_out.view(N, D, -1) # -> (N, D, tcn_channels[-1])
