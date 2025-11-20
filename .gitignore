@@ -108,3 +108,4 @@ runs/
 !.gitkeep
 
 cache/
+hugging_face_models/
