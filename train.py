@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cache-dir",
         type=Path,
-        default=Path("cache/images"),
+        default=None,
         help="Optional directory to cache rendered ViT images.",
     )
     parser.add_argument("--seq-len", type=int, default=336, help="Input sequence length for the causal path.")
