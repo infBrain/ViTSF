@@ -109,4 +109,6 @@ runs/
 
 cache/
 hugging_face_models/
-lightning_logs/ 
+lightning_logs/
+loss_logs/
+eval_outputs/

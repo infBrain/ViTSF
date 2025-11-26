@@ -85,6 +85,75 @@
 
 4.  **训练模型**
     ```bash
-    # (待补充)
-    # python train.py --config configs/vit_dual_path_ett.yaml
+    # 基础示例：使用缓存图像，并在训练结束后立即跑一次测试
+    python train.py \
+        --dataset-path data/processed/ett/ETTh1/data_with_TR.npz \
+        --cache-dir cache/images \
+        --batch-size 8 \
+        --max-epochs 5 \
+        --checkpoint-dir checkpoints/full_run \
+        --test-after-train --test-ckpt-path best
     ```
+
+## 训练脚本参数说明 (`train.py`)
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--dataset-path` | 是 | `data/processed/ett/ETTh1/data_with_TR.npz` | 预处理后的 `.npz` 数据（需包含 `train/val/test` 及 `T/R` 键）。 |
+| `--cache-dir` | 否 | `None` | 若提供，将渲染好的 ViT 输入缓存为 `.pt`（按 split+起点命名），训练和可视化可复用。 |
+| `--seq-len` / `--pred-len` / `--stride` | 否 | `336 / 96 / 1` | 滑动窗口相关超参。 |
+| `--batch-size` / `--num-workers` | 否 | `8 / 4` | DataLoader 设置；显存不够可调低 batch。 |
+| `--max-epochs` | 否 | `5` | 训练轮数。 |
+| `--learning-rate` / `--weight-decay` | 否 | `1e-4 / 1e-5` | AdamW 优化器参数。 |
+| `--lr-scheduler` | 否 | `cosine` | 支持 `none/cosine/plateau`。结合 `--lr-t-max/--lr-min/--lr-factor/--lr-patience` 进一步控制。 |
+| `--fusion-mode` | 否 | `gate` | 双路径融合方式，`add` 或 `gate`。 |
+| `--early-stop-patience` / `--early-stop-min-delta` | 否 | `10 / 1e-4` | >0 时启用 EarlyStopping（监控 `--monitor-metric`）。 |
+| `--monitor-metric` / `--monitor-mode` | 否 | `val_total_loss / min` | ModelCheckpoint & EarlyStopping 共同引用的指标。 |
+| `--checkpoint-dir` | 否 | `checkpoints` | 保存最优/最后模型的目录。`--checkpoint-save-top-k`、`--checkpoint-save-last` 控制保留策略。 |
+| `--fast-dev-run` | 否 | `False` | Lightning 的调试模式，只跑一两个 batch，不会写 checkpoint。 |
+| `--accelerator` / `--devices` | 否 | `auto / auto` | Lightning 硬件配置，可指定 `cpu`、`gpu`、`devices=4` 等。 |
+| `--test-after-train` | 否 | `False` | 训练结束后立即运行 `trainer.test()`。 |
+| `--test-only` | 否 | `False` | 跳过训练，直接测试（需搭配 `--test-ckpt-path` 给出 `.ckpt`）。 |
+| `--test-ckpt-path` | 否 | `best` | `trainer.test()` 使用的 checkpoint。可填 `best`、`last` 或具体路径。 |
+
+> 常见组合：
+> - **标准训练 + 自动测试**：`--cache-dir cache/images --checkpoint-dir checkpoints/full_run --test-after-train`
+> - **仅测试已有模型**：`--test-only --test-ckpt-path checkpoints/full_run/vitsf-epoch=03.ckpt`
+
+## 评估脚本 (`scripts/evaluate_model.py`)
+
+用于离线评测任意 checkpoint（支持 train/val/test split），并输出完整指标与路径分解图。
+
+### 基础命令
+
+```bash
+python scripts/evaluate_model.py \
+    --checkpoint checkpoints/full_run/vitsf-epoch=03.ckpt \
+    --dataset-path data/processed/ett/ETTh1/data_with_TR.npz \
+    --cache-dir cache/images \
+    --split test \
+    --batch-size 8 --num-workers 4 \
+    --output-dir eval_outputs/full_test
+```
+
+### 参数列表
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--checkpoint` | 是 | 无 | 要评测的 `.ckpt` 文件路径。 |
+| `--dataset-path` | 否 | `data/processed/ett/ETTh1/data_with_TR.npz` | 与训练阶段一致的数据文件。 |
+| `--cache-dir` | 否 | `None` | 若训练时开启缓存，应传同一路径以复用。 |
+| `--split` | 否 | `test` | 可选 `train/val/test`。 |
+| `--batch-size` / `--num-workers` | 否 | `8 / 4` | 推理批大小及 DataLoader worker。 |
+| `--seq-len` / `--pred-len` / `--stride` / `--image-size` | 否 | 训练默认值 | 应与训练时匹配。 |
+| `--device` | 否 | `auto` | `cpu`、`cuda` 或自动。 |
+| `--plot-node` | 否 | `0` | 生成图像时关注的节点索引。 |
+| `--limit-batches` | 否 | `None` | 只评测若干 batch 以快速 sanity check。 |
+| `--output-dir` | 否 | `eval_outputs` | 指标与图像的输出目录。 |
+
+### 产物
+
+- `metrics.json`：包含 **Final**（融合输出）、**Trend Path**（ViT 通道）、**Residual Path**（因果通道）的 MAE/MSE/RMSE/MAPE/SMAPE/R²。
+- `prediction_overview_node{k}.png`：三行子图展示真值与各路径预测，可直观比较路径贡献。
+
+> 若已在 `train.py` 中用 `--test-after-train`，Lightning 会直接调用 `trainer.test()` 并在日志中输出相同指标；`evaluate_model.py` 适合更灵活的离线分析（自定义节点、limit-batches、不同输出目录等）。

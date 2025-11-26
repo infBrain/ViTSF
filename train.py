@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, Mode
 
 from src.trainer.data_module import ViTSFDataModule
 from src.trainer.lightning_trainer import ViTSFLightningModule
+from src.trainer.callbacks import LossHistoryCallback
 
 
 def parse_args() -> argparse.Namespace:
@@ -92,6 +93,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fast-dev-run", action="store_true", help="Enable Lightning fast_dev_run mode.")
     parser.add_argument("--accelerator", default="auto")
     parser.add_argument("--devices", default="auto")
+    parser.add_argument(
+        "--loss-log-dir",
+        type=Path,
+        default=Path("loss_logs"),
+        help="Directory to store per-epoch loss history text/plots.",
+    )
+    parser.add_argument(
+        "--test-after-train",
+        action="store_true",
+        help="Run trainer.test() after training using the specified checkpoint.",
+    )
+    parser.add_argument(
+        "--test-only",
+        action="store_true",
+        help="Skip training and only run the test loop (requires --test-ckpt-path to be an explicit file).",
+    )
+    parser.add_argument(
+        "--test-ckpt-path",
+        type=str,
+        default="best",
+        help="Checkpoint to load for testing: 'best', 'last', or an explicit .ckpt path.",
+    )
     return parser.parse_args()
 
 
@@ -108,7 +131,12 @@ def main() -> None:
         stride=args.stride,
         cache_dir=args.cache_dir,
     )
-    data_module.setup("fit")
+    if args.test_only:
+        data_module.setup("test")
+    else:
+        data_module.setup("fit")
+        if args.test_after_train:
+            data_module.setup("test")
 
     model_config = {
         "pred_len": args.pred_len,
@@ -143,6 +171,9 @@ def main() -> None:
     checkpoint_dir = args.checkpoint_dir
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
+    loss_log_dir = args.loss_log_dir
+    loss_log_dir.mkdir(parents=True, exist_ok=True)
+
     callbacks = [
         ModelCheckpoint(
             dirpath=checkpoint_dir,
@@ -154,6 +185,7 @@ def main() -> None:
             auto_insert_metric_name=True,
         ),
         LearningRateMonitor(logging_interval="epoch"),
+        LossHistoryCallback(output_dir=loss_log_dir),
     ]
 
     if args.early_stop_patience > 0:
@@ -173,8 +205,24 @@ def main() -> None:
         fast_dev_run=args.fast_dev_run,
         callbacks=callbacks,
     )
+    if args.test_only:
+        if args.test_ckpt_path in {"best", "last"}:
+            raise ValueError("--test-only requires --test-ckpt-path to be an explicit checkpoint file path.")
+        test_results = trainer.test(
+            datamodule=data_module,
+            ckpt_path=args.test_ckpt_path,
+        )
+        print(f"Test metrics: {test_results}")
+        return
 
     trainer.fit(lightning_module, datamodule=data_module)
+
+    if args.test_after_train:
+        test_results = trainer.test(
+            datamodule=data_module,
+            ckpt_path=args.test_ckpt_path,
+        )
+        print(f"Test metrics: {test_results}")
 
 
 if __name__ == "__main__":

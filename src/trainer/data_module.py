@@ -47,7 +47,7 @@ class SeriesImageRenderer:
         return image
 
 
-class ViTSFDataset(Dataset[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]):
+class ViTSFDataset(Dataset[Tuple[torch.Tensor, ...]]):
     """Dataset returning (image, series, trend_target, residual_target) tuples."""
 
     def __init__(
@@ -58,6 +58,7 @@ class ViTSFDataset(Dataset[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch
         renderer: SeriesImageRenderer,
         context: Dict[str, np.ndarray] | None = None,
         cache_dir: Path | None = None,
+        return_history_components: bool = False,
     ) -> None:
         self.split = split_name
         split_series = arrays[split_name]
@@ -91,6 +92,7 @@ class ViTSFDataset(Dataset[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
         if self.cache_dir is not None:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.return_history_components = return_history_components
         self.num_nodes = self.series.shape[1]
         total = self.series.shape[0]
         start_lower = max(0, self.context_len - self.window_cfg.seq_len)
@@ -108,7 +110,7 @@ class ViTSFDataset(Dataset[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch
     def __len__(self) -> int:
         return len(self.indices)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, ...]:
         start, target_end = self.indices[idx]
         end = start + self.window_cfg.seq_len
         seq_window = self.series[start:end]
@@ -130,7 +132,12 @@ class ViTSFDataset(Dataset[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch
         x_series = torch.from_numpy(seq_window.astype(np.float32))
         y_trend = torch.from_numpy(trend_window.astype(np.float32))
         y_residual = torch.from_numpy(residual_window.astype(np.float32))
-        return image, x_series, y_trend, y_residual
+        if not self.return_history_components:
+            return image, x_series, y_trend, y_residual
+
+        history_trend = torch.from_numpy(self.trend[start:end].astype(np.float32))
+        history_residual = torch.from_numpy(self.residual[start:end].astype(np.float32))
+        return image, x_series, y_trend, y_residual, history_trend, history_residual
 
 
 class ViTSFDataModule(pl.LightningDataModule):
@@ -144,6 +151,7 @@ class ViTSFDataModule(pl.LightningDataModule):
         stride: int = 1,
         image_size: int = 224,
         cache_dir: str | Path | None = None,
+        return_history_components: bool = False,
     ) -> None:
         super().__init__()
         self.dataset_path = Path(dataset_path)
@@ -152,6 +160,7 @@ class ViTSFDataModule(pl.LightningDataModule):
         self.window_cfg = WindowConfig(seq_len=seq_len, pred_len=pred_len, stride=stride)
         self.renderer = SeriesImageRenderer(image_size=image_size)
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
+        self.return_history_components = return_history_components
         self.arrays: Dict[str, np.ndarray] | None = None
         self._num_nodes: int | None = None
         self.train_dataset: ViTSFDataset | None = None
@@ -209,6 +218,7 @@ class ViTSFDataModule(pl.LightningDataModule):
                 self.renderer,
                 context=train_context,
                 cache_dir=train_cache,
+                return_history_components=self.return_history_components,
             )
             self.val_dataset = ViTSFDataset(
                 "val",
@@ -217,6 +227,7 @@ class ViTSFDataModule(pl.LightningDataModule):
                 self.renderer,
                 context=context_for_val,
                 cache_dir=val_cache,
+                return_history_components=self.return_history_components,
             )
         if stage in ("test", None):
             train_val_series = np.concatenate([self.arrays["train"], self.arrays["val"]], axis=0)
@@ -235,6 +246,7 @@ class ViTSFDataModule(pl.LightningDataModule):
                 self.renderer,
                 context=context_for_test,
                 cache_dir=test_cache,
+                return_history_components=self.return_history_components,
             )
 
     def train_dataloader(self) -> DataLoader:
